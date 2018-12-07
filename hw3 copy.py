@@ -114,7 +114,6 @@ class App(QMainWindow):
     def draw_delaunay(self, subdiv ) :
         triangleList = subdiv.getTriangleList();
         size = self.image.shape
-        self.triimage = self.image
         r = (0, 0, size[1], size[0])
         for t in triangleList :
             pt1 = (t[0], t[1])
@@ -172,9 +171,10 @@ class App(QMainWindow):
                 cv2.line(self.triimage2, pt2, pt3, self.delaunay_color, 1, cv2.LINE_AA, 0)
                 cv2.line(self.triimage2, pt3, pt1, self.delaunay_color, 1, cv2.LINE_AA, 0)
         
-        self.qImg = QImage(self.triimage2.data,size[1],size[0],size[1]*3,QImage.Format_RGB888).rgbSwapped()
+        self.morphPrint()
+        self.qImg2 = QImage(self.triimage2.data,size[1],size[0],size[1]*3,QImage.Format_RGB888).rgbSwapped()
         
-        self.imageLabel1.setPixmap(QPixmap.fromImage(self.qImg))
+        self.imageLabel1.setPixmap(QPixmap.fromImage(self.qImg2))
         self.imageLabel1.setAlignment(Qt.AlignCenter)
         self.targetBox.layout().addWidget(self.imageLabel1)
     def getbilinearpixel(self,posX,posY):
@@ -240,7 +240,7 @@ class App(QMainWindow):
                     if index<len(coordt):
                         self.image[a][b]=self.getbilinearpixel(coordt[index][0],coordt[index][1])
                         index=index+1
-        self.morphPrint()
+        
         
     def morphPrint(self):
         size = self.image.shape
@@ -287,8 +287,8 @@ class App(QMainWindow):
                 QMessageBox.information(self, "Image Viewer",
                         "Cannot load %s." % fileName)
                 return
-            
-        self.qImg = QImage(self.image.data,widthI,heightI,bytesPerLine,QImage.Format_RGB888).rgbSwapped()
+        self.triimage=self.image    
+        self.qImg = QImage(self.triimage.data,widthI,heightI,bytesPerLine,QImage.Format_RGB888).rgbSwapped()
         
         self.imageLabel = QLabel('image')
         self.imageLabel.setPixmap(QPixmap.fromImage(self.qImg))
