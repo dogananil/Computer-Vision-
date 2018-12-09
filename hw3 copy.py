@@ -45,6 +45,7 @@ class App(QMainWindow):
         
         self.image = None
         self.image2 = None
+        self.result = None
         self.triimage = None
         self.triimage2 = None
         self.tmp_im = None
@@ -88,7 +89,7 @@ class App(QMainWindow):
         self.triang = QAction(' &Create Triangulation',self)
         self.triang.triggered.connect(self.createTri)
         self.morphing = QAction(' &Morph',self)
-        self.morphing.triggered.connect(self.morphFunc)
+        self.morphing.triggered.connect(self.morphPrint)
     
     def createMenu(self):
         self.mainMenu = self.menuBar()
@@ -132,6 +133,9 @@ class App(QMainWindow):
     def draw_delaunay1(self, subdiv ) :
         triangleList = subdiv.getTriangleList();
         size = self.image2.shape
+        abool = 0
+        cbool = 0
+        dbool = 0
         self.triimage2 =self.image2
         r = (0, 0, size[1], size[0])
 
@@ -143,35 +147,43 @@ class App(QMainWindow):
                 temp = (self.bushpoints[b][1],self.bushpoints[b][0])
                 if(pt1==temp):
                     a = (self.arnoldpoints[b][1],self.arnoldpoints[b][0])
+                    abool = 1
                 if(pt2==temp):
                     c = (self.arnoldpoints[b][1],self.arnoldpoints[b][0])
+                    cbool = 1
                 if(pt3==temp):
                     d = (self.arnoldpoints[b][1],self.arnoldpoints[b][0]) 
+                    dbool = 1
 
-            
-            if self.rectcontains(r, pt1) and self.rectcontains(r, pt2) and self.rectcontains(r, pt3) :
-                ptt1 = pt1
-                ptt2 = pt2
-                ptt3 = pt3
-                pt1 = a
-                pt2 = c
-                pt3 = d
-                bmatrix1=[a[0],c[0],d[0]] # target image x's
-                mmatrix = [[ptt1[0],ptt1[1],1],[ptt2[0],ptt2[1],1],[ptt3[0],ptt3[1],1]]# input image 
-                bmatrix2 =[a[1],c[1],d[1]] # target image y's
-                minverse = inv(mmatrix)
-                amatrix1 = np.matmul(minverse,bmatrix1)
-                amatrix2 = np.matmul(minverse,bmatrix2)
-                amatrix = [[amatrix1[0],amatrix1[1],amatrix1[2]],[amatrix2[0],amatrix2[1],amatrix2[2]],[0,0,1]]
-                targettriangle = (pt1,pt2,pt3)
-                inputtriangle = (ptt1,ptt2,ptt3)
-                self.morphFunc(amatrix,targettriangle,inputtriangle)
-
-                cv2.line(self.triimage2, pt1, pt2, self.delaunay_color, 1, cv2.LINE_AA, 0)
-                cv2.line(self.triimage2, pt2, pt3, self.delaunay_color, 1, cv2.LINE_AA, 0)
-                cv2.line(self.triimage2, pt3, pt1, self.delaunay_color, 1, cv2.LINE_AA, 0)
+            if abool and cbool and dbool:
+                abool = 0
+                cbool = 0
+                dbool = 0
+                if self.rectcontains(r, pt1) and self.rectcontains(r, pt2) and self.rectcontains(r, pt3) :
+                    ptt1 = pt1
+                    ptt2 = pt2
+                    ptt3 = pt3
+                    pt1 = a
+                    pt2 = c
+                    pt3 = d
+                    bmatrix1=[a[1],c[1],d[1]] # target image x's
+                    mmatrix = [[ptt1[1],ptt1[0],1],[ptt2[1],ptt2[0],1],[ptt3[1],ptt3[0],1]]# input image 
+                    bmatrix2 =[a[0],c[0],d[0]] # target image y's
+                    minverse = inv(mmatrix)
+                    amatrix1 = np.matmul(minverse,bmatrix1)
+                    amatrix2 = np.matmul(minverse,bmatrix2)
+                    amatrix = [[amatrix1[0],amatrix1[1],amatrix1[2]],[amatrix2[0],amatrix2[1],amatrix2[2]],[0,0,1]]
+                   # print(amatrix)
+                   # targetimage =[a[0],a[1],1]
+                    targettriangle = (pt1,pt2,pt3)
+                    inputtriangle = (ptt1,ptt2,ptt3)
+                    self.morphFunc(amatrix,targettriangle,inputtriangle) #### BUNU AÇMAYI UNUTMA
+                    
+                    cv2.line(self.triimage2, pt1, pt2, self.delaunay_color, 1, cv2.LINE_AA, 0)
+                    cv2.line(self.triimage2, pt2, pt3, self.delaunay_color, 1, cv2.LINE_AA, 0)
+                    cv2.line(self.triimage2, pt3, pt1, self.delaunay_color, 1, cv2.LINE_AA, 0)
         
-        self.morphPrint()
+        #self.morphPrint()
         self.qImg2 = QImage(self.triimage2.data,size[1],size[0],size[1]*3,QImage.Format_RGB888).rgbSwapped()
         
         self.imageLabel1.setPixmap(QPixmap.fromImage(self.qImg2))
@@ -181,19 +193,20 @@ class App(QMainWindow):
         out = []
         heightI,widthI,channelsI = self.image.shape      
     	#Get integer and fractional parts of numbers
+        
         modXi = int(posX)
         modYi = int(posY)
         modXf = posX - modXi
         modYf = posY - modYi
-        modXiPlusOneLim = min(modXi+1,self.image.shape[1]-1)
-        modYiPlusOneLim = min(modYi+1,self.image.shape[0]-1)
+        modXiPlusOneLim = min(modXi+1,self.image.shape[0]-1)
+        modYiPlusOneLim = min(modYi+1,self.image.shape[1]-1)
      
     	#Get pixels in four corners
         for chan in range(self.image.shape[2]):
-            bl = self.image[modYi, modXi, chan]
-            br = self.image[modYi, modXiPlusOneLim, chan]
-            tl = self.image[modYiPlusOneLim, modXi, chan]
-            tr = self.image[modYiPlusOneLim, modXiPlusOneLim, chan]
+            bl = self.image[modXi, modYi, chan]
+            br = self.image[modXi, modYiPlusOneLim, chan]
+            tl = self.image[modXiPlusOneLim, modYi, chan]
+            tr = self.image[modXiPlusOneLim, modYiPlusOneLim, chan]
  
 		#Calculate interpolation
             b = modXf * br + (1. - modXf) * bl
@@ -208,43 +221,56 @@ class App(QMainWindow):
         index = 0
         coordt = []
         for a in range(0,heightI):
-            for b in range(0,widthI):
-                bx=targettriangle[1][0]-targettriangle[0][0]
-                by=targettriangle[1][1]-targettriangle[0][1]
-                cx=targettriangle[2][0]-targettriangle[0][0]
-                cy=targettriangle[2][1]-targettriangle[0][1]
-                x=b-targettriangle[0][0]
-                y=a-targettriangle[0][1]
+            for b in range(0,widthI):   
+                bx=targettriangle[1][1]-targettriangle[0][1]
+                by=targettriangle[1][0]-targettriangle[0][0]
+                cx=targettriangle[2][1]-targettriangle[0][1]
+                cy=targettriangle[2][0]-targettriangle[0][0]
+                x=a-targettriangle[0][1]
+                y=b-targettriangle[0][0]
                 d=bx*cy-cx*by
                 wa = (x*(by-cy)+y*(cx-bx)+bx*cy-cx*by)/d
                 wb = (x*cy-y*cx)/d
                 wc = (y*bx-x*by)/d
                 if wa>0 and wa<1 and wb>0 and wb<1 and wc>0 and wc<1:
-                    coord = np.matmul(invamatrix,[b,a,1])
+                    coord = np.matmul(invamatrix,[a,b,1])
                     coordinate = (coord[0],coord[1])
                     coordt.append(coordinate)
-                    
+                            
         for a in range(0,heightI):
             for b in range(0,widthI):   
-                bix=inputtriangle[1][0]-inputtriangle[0][0]
-                biy=inputtriangle[1][1]-inputtriangle[0][1]
-                cix=inputtriangle[2][0]-inputtriangle[0][0]
-                ciy=inputtriangle[2][1]-inputtriangle[0][1]
-                xi=b-inputtriangle[0][0]
-                yi=a-inputtriangle[0][1]
+                bix=inputtriangle[1][1]-inputtriangle[0][1]
+                biy=inputtriangle[1][0]-inputtriangle[0][0]
+                cix=inputtriangle[2][1]-inputtriangle[0][1]
+                ciy=inputtriangle[2][0]-inputtriangle[0][0]
+                xi=a-inputtriangle[0][1]
+                yi=b-inputtriangle[0][0]
                 di=bix*ciy-cix*biy
                 wai = (xi*(biy-ciy)+yi*(cix-bix)+bix*ciy-cix*biy)/di
                 wbi = (xi*ciy-yi*cix)/di
                 wci = (yi*bix-xi*biy)/di
                 if wai>0 and wai<1 and wbi>0 and wbi<1 and wci>0 and wci<1:
                     if index<len(coordt):
-                        self.image[a][b]=self.getbilinearpixel(coordt[index][0],coordt[index][1])
+                        if coordt[index][1]>=widthI:
+                            newy=int(coordt[index][1])-320
+                            #coordt[index][1]=coordt[index][1]-320
+                        else:
+                            newy =int(coordt[index][1])
+                        if coordt[index][0]>=heightI:
+                            newx=int(coordt[index][0])-480
+                            #coordt[index][0]=coordt[index][0]-480
+                        else:
+                            newx=int(coordt[index][0])
+                        #self.image[a][b]=self.image[newx][newy]
+                        #self.image[a][b]=self.getbilinearpixel(newx,newy)
+                        self.result[a][b] = self.image[newx][newy]
                         index=index+1
         
         
     def morphPrint(self):
         size = self.image.shape
-        self.qImg3 = QImage(self.image.data,size[1],size[0],size[1]*3,QImage.Format_RGB888).rgbSwapped()
+        self.result = self.result.astype('uint8')
+        self.qImg3 = QImage(self.result.data,size[1],size[0],size[1]*3,QImage.Format_RGB888).rgbSwapped()
         
         self.imageLabel2 = QLabel('Result')
         self.imageLabel2.setPixmap(QPixmap.fromImage(self.qImg3))
@@ -252,9 +278,6 @@ class App(QMainWindow):
         self.resultBox.layout().addWidget(self.imageLabel2)           
     def createTri(self):
         heightI,widthI,channelsI = self.image.shape
-        self.red = self.image[:,:,2]
-        self.green = self.image[:,:,1]
-        self.blue = self.image[:,:,0] 
         rect1 = (0,0,widthI,heightI)
         subdiv1 = cv2.Subdiv2D(rect1)
         rect2 = (0,0,widthI,heightI)
@@ -282,12 +305,13 @@ class App(QMainWindow):
         if fileName:
             self.image = cv2.imread(fileName)
             heightI,widthI,channelsI = self.image.shape
+            self.result = np.zeros((heightI,widthI,channelsI),dtype=int)
             bytesPerLine = 3 * widthI
             if not self.image.data:
                 QMessageBox.information(self, "Image Viewer",
                         "Cannot load %s." % fileName)
                 return
-        self.triimage=self.image    
+        self.triimage=self.image.copy()   
         self.qImg = QImage(self.triimage.data,widthI,heightI,bytesPerLine,QImage.Format_RGB888).rgbSwapped()
         
         self.imageLabel = QLabel('image')
