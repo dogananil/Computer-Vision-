@@ -3,7 +3,7 @@
 """
 Created on Thu Oct 18 00:14:00 2018
 
-@author: anildogan
+@author: anildogan 150130053 Musa Anil Dogan
 """
 import sys
 from PyQt5.QtWidgets import QMainWindow,QMessageBox, QApplication,QScrollArea, QWidget, QPushButton, QAction, QGroupBox, QFileDialog, QLabel, QVBoxLayout, QGridLayout, QHBoxLayout,QFrame, QSplitter,QSizePolicy
